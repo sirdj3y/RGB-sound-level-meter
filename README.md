@@ -27,8 +27,8 @@ Système de monitoring sonore temps réel pour réfectoire, salle d'activité ou
 | Composant | Référence | Quantité |
 |---|---|---|
 | Raspberry Pi 3B+ | - | 1 |
-| Bandeau LED WS2812B 5V | ex. Amazon B01CDTED80 (60 LEDs/m) | 1m |
-| Microphone USB | tout micro USB compatible Linux | 1 |
+| Bandeau LED WS2812B 5V | ex: [Amazon B01CDTED80 (60 LEDs/m)](https://www.amazon.fr/dp/B01CDTED80) | 1m |
+| Microphone USB | ex: [https://www.amazon.fr/dp/B0BHYC2MYV] | 1 |
 | Alimentation 5V 2A | USB ou jack | 1 |
 | Câbles Dupont femelle-femelle | - | 2 |
 | Connecteurs Wago 221 (3 ou 5 entrées) | - | 2 |
