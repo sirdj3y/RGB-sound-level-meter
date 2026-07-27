@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1c1e">
+<title>Éditeur — Sonomètre</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<style>
+  :root{
+    --bg:#1c1c1e;--sidebar:#2c2c2e;--card:#3a3a3c;
+    --accent:#007aff;--green:#32d74b;--red:#ff453a;--orange:#ff9f0a;
+    --text:#fff;--text-2:#8e8e93;--hair:rgba(255,255,255,.1);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+  .topbar{display:flex;align-items:center;gap:12px;padding:0 16px;height:52px;background:var(--sidebar);border-bottom:1px solid var(--hair);flex-shrink:0}
+  .topbar a{color:var(--text-2);text-decoration:none;font-size:14px}
+  .topbar a:hover{color:var(--text)}
+  .topbar .sep{color:var(--hair)}
+  .topbar .filename{font-size:14px;font-weight:600;flex:1;color:var(--text)}
+  .topbar .unsaved{width:8px;height:8px;border-radius:50%;background:var(--orange);display:none;flex-shrink:0}
+  .btn-save{padding:7px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;transition:opacity .15s}
+  .btn-save:hover{opacity:.85}
+  .btn-save:active{opacity:.7}
+  .btn-save:disabled{opacity:.4;cursor:default}
+  .save-msg{font-size:13px;color:var(--green);opacity:0;transition:opacity .3s}
+  .body{display:flex;flex:1;overflow:hidden}
+  .sidebar{width:200px;background:var(--sidebar);border-right:1px solid var(--hair);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+  .sidebar-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);padding:14px 16px 8px}
+  .file-item{padding:10px 16px;font-size:14px;cursor:pointer;color:var(--text-2);border-left:2px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-item:hover{background:rgba(255,255,255,.06);color:var(--text)}
+  .file-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,122,255,.12)}
+  .editor-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+  .CodeMirror{height:100%;font-size:13px;line-height:1.6;font-family:"SF Mono","Fira Code","Consolas",monospace}
+  .CodeMirror-scroll{height:100%}
+  @media(max-width:600px){
+    .sidebar{position:fixed;left:0;top:52px;bottom:0;z-index:10;transform:translateX(-100%);transition:transform .2s}
+    .sidebar.open{transform:translateX(0)}
+    .btn-menu{display:flex}
+  }
+  .btn-menu{display:none;align-items:center;justify-content:center;width:36px;height:36px;border:none;background:var(--card);border-radius:8px;cursor:pointer;color:var(--text)}
+  .btn-menu svg{width:18px;height:18px}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9}
+  .overlay.open{display:block}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="btn-menu" id="btnMenu" aria-label="Fichiers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a href="/config">← Config</a>
+    <span class="sep">/</span>
+    <span class="filename" id="topFilename">Sélectionne un fichier</span>
+    <span class="unsaved" id="unsavedDot" title="Modifications non sauvegardées"></span>
+    <span class="save-msg" id="saveMsg">Sauvegardé ✓</span>
+    <button class="btn-save" id="btnSave" disabled onclick="saveFile()">Sauvegarder</button>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <div class="body">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-title">Fichiers</div>
+      {% for f in files %}
+      <div class="file-item file-ext-{{ f.split('.')[-1] }}" onclick="loadFile('{{ f }}')">{{ f }}</div>
+      {% endfor %}
+    </div>
+    <div class="editor-wrap">
+      <textarea id="editor"></textarea>
+    </div>
+  </div>
+
+<script>
+var cm, currentFile=null, isDirty=false;
+
+function initEditor(){
+  cm=CodeMirror.fromTextArea(document.getElementById('editor'),{
+    theme:'material-darker',
+    lineNumbers:true,
+    indentUnit:4,
+    tabSize:4,
+    indentWithTabs:false,
+    lineWrapping:false,
+    autofocus:false
+  });
+  cm.on('change',function(){
+    if(!isDirty){
+      isDirty=true;
+      document.getElementById('unsavedDot').style.display='block';
+      document.getElementById('btnSave').disabled=false;
+    }
+  });
+}
+
+function modeFor(name){
+  if(name.endsWith('.py'))   return 'python';
+  if(name.endsWith('.html')) return 'htmlmixed';
+  if(name.endsWith('.json')) return 'javascript';
+  return 'text';
+}
+
+async function loadFile(name){
+  if(isDirty && !confirm('Modifications non sauvegardées. Continuer ?')) return;
+  document.querySelectorAll('.file-item').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.file-item').forEach(function(el){
+    if(el.textContent.trim()===name) el.classList.add('active');
+  });
+  try{
+    var d=await (await fetch('/api/editor/load?file='+encodeURIComponent(name))).json();
+    if(d.error){alert(d.error);return;}
+    cm.setValue(d.content);
+    cm.setOption('mode',modeFor(name));
+    cm.clearHistory();
+    currentFile=name;
+    isDirty=false;
+    document.getElementById('unsavedDot').style.display='none';
+    document.getElementById('btnSave').disabled=true;
+    document.getElementById('topFilename').textContent=name;
+    document.getElementById('saveMsg').style.opacity='0';
+    closeSidebar();
+  }catch(e){alert('Erreur lors du chargement');}
+}
+
+async function saveFile(){
+  if(!currentFile) return;
+  var btn=document.getElementById('btnSave');
+  btn.disabled=true; btn.textContent='Sauvegarde...';
+  try{
+    var r=await fetch('/api/editor/save',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({file:currentFile,content:cm.getValue()})
+    });
+    var d=await r.json();
+    if(d.ok){
+      isDirty=false;
+      document.getElementById('unsavedDot').style.display='none';
+      var msg=document.getElementById('saveMsg');
+      msg.style.opacity='1';
+      setTimeout(function(){msg.style.opacity='0';},2000);
+      btn.textContent='Sauvegarder';
+      if(currentFile==='app.py'){
+        msg.textContent='Sauvegardé ✓ - Redémarrage webapp...';
+        setTimeout(function(){window.location.reload();},3000);
+      }
+    } else {
+      alert('Erreur : '+d.error);
+      btn.disabled=false; btn.textContent='Sauvegarder';
+    }
+  }catch(e){
+    alert('Erreur réseau');
+    btn.disabled=false; btn.textContent='Sauvegarder';
+  }
+}
+
+document.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey) && e.key==='s'){e.preventDefault();if(!isDirty) return;saveFile();}
+});
+
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('btnMenu').addEventListener('click',function(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+});
+
+initEditor();
+</script>
+</body>
+</html>

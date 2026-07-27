@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Dashboard — Sonomètre</title>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+<style>
+  :root{--bg:#f2f2f7;--card:#ffffff;--accent:#007aff;--accent-press:#0066d6;--green:#16a34a;--green-bg:#e7f6ec;--orange:#f97316;--orange-bg:#fdeee1;--red:#ef4444;--red-bg:#fdecec;--text:#1c1c1e;--text-2:#8e8e93;--hair:rgba(60,60,67,.12);--track:#e9e9ee;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+  .nav{position:sticky;top:0;z-index:20;display:flex;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair);padding-top:env(safe-area-inset-top)}
+  .nav-inner{max-width:653px;margin:0 auto;display:flex;width:100%}
+  .nav a{flex:1;display:flex;align-items:center;justify-content:center;height:52px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--accent);font-weight:600;border-bottom-color:var(--accent)}
+  main{max-width:653px;margin:0 auto;padding:16px 16px 32px;display:flex;flex-direction:column;gap:16px}
+  @media(min-width:768px){main{padding:24px 32px 40px}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .card-label{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);margin:0 0 4px}
+  .gauge-wrap{display:flex;flex-direction:column;align-items:center}
+  .gauge{width:100%;max-width:300px;display:block}
+  .gauge-tick{font-size:9px;fill:var(--text-2);font-family:var(--font)}
+  .readout{margin-top:-28px;text-align:center}
+  .readout .val{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1;transition:color .3s}
+  .readout .val .unit{font-size:26px;font-weight:700;margin-left:2px}
+  .trend{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:14px;color:var(--text-2);font-weight:500}
+  .trend .dot{width:8px;height:8px;border-radius:50%;background:var(--text-2)}
+  .meta{font-size:13px;color:var(--text-2);margin-top:6px}
+  .pill{display:inline-block;margin-top:14px;padding:7px 18px;border-radius:999px;font-size:13px;font-weight:700;letter-spacing:.08em}
+  .pill.green{background:var(--green-bg);color:var(--green)}
+  .pill.orange{background:var(--orange-bg);color:var(--orange)}
+  .pill.red{background:var(--red-bg);color:var(--red)}
+  .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .range-btns{display:flex;gap:4px}
+  .range-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--hair);background:#fff;color:var(--text-2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .12s}
+  .range-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+  .peak-badge{font-size:12px;color:var(--red);font-weight:600;margin-top:4px;text-align:right}
+  #rt-chart{min-height:220px}
+  .fullscreen-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--hair);border-radius:6px;background:#fff;color:var(--text-2);cursor:pointer;transition:all .12s}
+  .fullscreen-btn:hover{background:var(--field);color:var(--text)}
+  .fullscreen-btn svg{width:14px;height:14px}
+  .chart-card-fs:fullscreen{background:var(--card);padding:24px;display:flex;flex-direction:column;justify-content:center}
+  .chart-card-fs:fullscreen #rt-chart{min-height:60vh}
+  .chart-card-fs:fullscreen #hist-chart{min-height:60vh}
+  .fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,122,255,.4);z-index:30;text-decoration:none;transition:transform .15s}
+  .fab:active{transform:scale(.93)}
+  .fab svg{width:24px;height:24px}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="active">Dashboard</a>
+      <a href="/history">Historique</a>
+      <a href="/status">Statut</a>
+      <a href="/config">Config</a>
+    </div>
+  </nav>
+  <main>
+    <section class="card gauge-wrap">
+      <svg class="gauge" viewBox="-12 0 244 132" id="gauge" aria-hidden="true"></svg>
+      <div class="readout">
+        <p class="card-label">Niveau sonore</p>
+        <div class="val" id="dbVal">—<span class="unit">dB</span></div>
+        <div class="trend"><span class="dot" id="trendDot"></span><span id="trendTxt">—</span></div>
+        <div class="meta" id="lastMeasure">Dernière mesure à --:--:--</div>
+        <span class="pill green" id="statePill">—</span>
+      </div>
+    </section>
+
+    <section class="card chart-card-fs" id="chartCard">
+      <div class="chart-head">
+        <p class="card-label" style="margin:0">Évolution</p>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="range-btns" id="rangeBtns">
+            <button class="range-btn" data-min="5">5 min</button>
+            <button class="range-btn" data-min="15">15 min</button>
+            <button class="range-btn active" data-min="60">1 h</button>
+            <button class="range-btn" data-min="180">3 h</button>
+          </div>
+          <button class="fullscreen-btn" id="fsBtn" aria-label="Plein écran" title="Plein écran">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="rt-chart"></div>
+      <div class="peak-badge" id="peakBadge"></div>
+    </section>
+  </main>
+
+  <a href="/public" target="_blank" class="fab" aria-label="Écran réfectoire">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="m8 3 4 4 4-4"/></svg>
+  </a>
+
+<script>
+var CFG={min:{{ config.db_min }},vert:{{ config.db_vert }},orange:{{ config.db_orange }},rouge:{{ config.db_rouge }},max:{{ config.db_max }}};
+var COLOR={green:'#16a34a',orange:'#f97316',red:'#ef4444'};
+function zoneOf(v){return v>=CFG.rouge?'red':v>=CFG.orange?'orange':'green';}
+function zoneLabel(z){return z==='red'?'TROP FORT':z==='orange'?'ÇA MONTE':'CALME';}
+
+/* ── Jauge SVG ── */
+var GA={cx:110,cy:114,r:92,sw:16};
+function polar(f){var a=Math.PI*(1-f);return{x:GA.cx+GA.r*Math.cos(a),y:GA.cy-GA.r*Math.sin(a)};}
+function arcPath(f0,f1){var p0=polar(f0),p1=polar(f1);return"M "+p0.x.toFixed(2)+" "+p0.y.toFixed(2)+" A "+GA.r+" "+GA.r+" 0 0 1 "+p1.x.toFixed(2)+" "+p1.y.toFixed(2);}
+function fracOf(v){return Math.max(0,Math.min(1,(v-CFG.min)/(CFG.max-CFG.min)));}
+function buildGauge(){
+  var g=document.getElementById('gauge'),fO=fracOf(CFG.orange),fR=fracOf(CFG.rouge),ns="http://www.w3.org/2000/svg";
+  function seg(f0,f1,c){var p=document.createElementNS(ns,'path');p.setAttribute('d',arcPath(f0,f1));p.setAttribute('stroke',c);p.setAttribute('stroke-width',GA.sw);p.setAttribute('fill','none');p.setAttribute('stroke-linecap','round');p.setAttribute('opacity','.22');return p;}
+  g.appendChild(seg(0,fO,COLOR.green));g.appendChild(seg(fO,fR,COLOR.orange));g.appendChild(seg(fR,1,COLOR.red));
+  var prog=document.createElementNS(ns,'path');prog.setAttribute('fill','none');prog.setAttribute('stroke-width',GA.sw);prog.setAttribute('stroke-linecap','round');prog.id='gaugeProg';g.appendChild(prog);
+  for(var i=0;i<=4;i++){var f=i/4,val=Math.round(CFG.min+(CFG.max-CFG.min)*f),lx=GA.cx+(GA.r+18)*Math.cos(Math.PI*(1-f)),ly=GA.cy-(GA.r+18)*Math.sin(Math.PI*(1-f)),t=document.createElementNS(ns,'text');t.setAttribute('x',lx);t.setAttribute('y',ly+3);t.setAttribute('text-anchor','middle');t.setAttribute('class','gauge-tick');t.textContent=val;g.appendChild(t);}
+}
+function updateGauge(v){var prog=document.getElementById('gaugeProg');if(!prog)return;var f=fracOf(v),z=zoneOf(v);prog.setAttribute('d',arcPath(0,Math.max(f,.001)));prog.setAttribute('stroke',COLOR[z]);}
+
+/* ── ApexCharts ── */
+var rtChart=null,currentMinutes=60,lastDb=null;
+var chartOptions={
+  chart:{type:'area',height:320,toolbar:{show:false},zoom:{enabled:true},animations:{enabled:true,easing:'easeinout',speed:400},fontFamily:'inherit'},
+  series:[
+    {name:'Moyenne',data:[]},
+    {name:'Pic',data:[]}
+  ],
+  colors:['#16a34a','#ef4444'],
+  stroke:{curve:'smooth',width:[2,1.5],dashArray:[0,5]},
+  fill:{type:['gradient','solid'],opacity:[1,0],gradient:{shade:'light',type:'vertical',shadeIntensity:0.5,opacityFrom:0.7,opacityTo:0.1,stops:[0,90,100]}},
+  xaxis:{type:'datetime',labels:{style:{colors:'#b8b8be',fontSize:'11px'},datetimeUTC:false},axisBorder:{show:false},axisTicks:{show:false}},
+  yaxis:{min:0,max:CFG.max,labels:{style:{colors:'#b8b8be',fontSize:'11px'},formatter:function(v){return Math.round(v);}},axisBorder:{show:false}},
+  grid:{borderColor:'rgba(60,60,67,.08)',strokeDashArray:0,xaxis:{lines:{show:false}}},
+  tooltip:{x:{format:'HH:mm:ss'},y:{formatter:function(v){return v+' dB';}},theme:'light'},
+  legend:{show:true,position:'top',horizontalAlign:'right',fontSize:'11px',labels:{colors:'#555'},markers:{width:10,height:10,radius:2}},
+  dataLabels:{enabled:false},
+  markers:{size:0}
+};
+
+function initChart(){
+  rtChart=new ApexCharts(document.getElementById('rt-chart'),chartOptions);
+  rtChart.render();
+}
+
+async function fetchRange(){
+  try{
+    var d=await(await fetch('/api/data/range?minutes='+currentMinutes)).json();
+    var avgSeries=d.points.map(function(p){return[p.t*1000,p.avg];});
+    var maxSeries=d.points.map(function(p){return[p.t*1000,p.max];});
+    rtChart.updateSeries([{name:'Moyenne',data:avgSeries},{name:'Pic',data:maxSeries}],true);
+    if(d.peak>0)document.getElementById('peakBadge').textContent='Pic : '+d.peak+' dB sur la période';
+  }catch(e){}
+}
+
+document.getElementById('rangeBtns').addEventListener('click',function(e){
+  var btn=e.target.closest('[data-min]');if(!btn)return;
+  document.querySelectorAll('.range-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');currentMinutes=parseInt(btn.dataset.min);fetchRange();
+});
+
+async function fetchCurrent(){
+  try{
+    var d=await(await fetch('/api/current')).json(),v=d.db,z=zoneOf(v);
+    var valEl=document.getElementById('dbVal');valEl.innerHTML=v.toFixed(1)+'<span class="unit">dB</span>';valEl.style.color=COLOR[z];
+    updateGauge(v);
+    var delta=lastDb!==null?v-lastDb:0,td=document.getElementById('trendTxt'),tdot=document.getElementById('trendDot');
+    if(Math.abs(delta)<1.5){td.textContent='stable';tdot.style.background='var(--text-2)';}
+    else if(delta>0){td.textContent='en hausse';tdot.style.background=COLOR.orange;}
+    else{td.textContent='en baisse';tdot.style.background=COLOR.green;}
+    var pill=document.getElementById('statePill');pill.className='pill '+z;pill.textContent=zoneLabel(z);
+    if(d.t)document.getElementById('lastMeasure').textContent='Dernière mesure à '+new Date(d.t*1000).toLocaleTimeString('fr-FR');
+    lastDb=v;
+  }catch(e){}
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  buildGauge();initChart();
+  fetchCurrent();fetchRange();
+  setInterval(fetchCurrent,300);
+  setInterval(fetchRange,10000);
+
+  var fsBtn=document.getElementById('fsBtn');
+  var chartCard=document.getElementById('chartCard');
+  fsBtn.addEventListener('click',function(){
+    if(!document.fullscreenElement){
+      chartCard.requestFullscreen().catch(function(){});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange',function(){
+    setTimeout(function(){ rtChart.render(); },50);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f2f7">
+<title>Connexion — Sonomètre</title>
+<style>
+  :root{
+    --bg:#f2f2f7;--card:#ffffff;
+    --accent:#007aff;--accent-press:#0066d6;
+    --green:#16a34a;--green-bg:#e7f6ec;
+    --red:#ef4444;--text:#1c1c1e;--text-2:#8e8e93;
+    --hair:rgba(60,60,67,.12);--field:#f2f2f7;
+    --radius:12px;--radius-lg:18px;
+    --shadow-lg:0 1px 2px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.07);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{
+    font-family:var(--font);background:var(--bg);color:var(--text);
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;
+    padding:24px;padding-bottom:max(24px,env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+  .login{width:100%;max-width:380px;background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:36px 28px 30px}
+  .brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:28px}
+  .brand-icon{width:64px;height:64px;border-radius:16px;background:var(--green-bg);display:grid;place-items:center;margin-bottom:16px}
+  .brand-icon svg{width:32px;height:32px;color:var(--green)}
+  .brand h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0}
+  .brand p{font-size:15px;color:var(--text-2);margin:4px 0 0}
+  form{display:flex;flex-direction:column;gap:18px}
+  .field label{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px}
+  .field input{
+    width:100%;height:48px;border:none;background:var(--field);
+    border-radius:var(--radius);padding:0 16px;font-size:16px;font-family:inherit;
+    color:var(--text);outline:2px solid transparent;transition:outline-color .15s,background .15s;
+  }
+  .field input::placeholder{color:#b0b0b6}
+  .field input:focus{background:#fff;outline-color:var(--accent)}
+  .error{background:#fdecec;color:var(--red);border-radius:var(--radius);padding:11px 14px;font-size:14px;font-weight:500;text-align:center}
+  .btn{height:50px;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;transition:background .15s,transform .05s}
+  .btn:hover{background:var(--accent-press)}
+  .btn:active{transform:scale(.985)}
+</style>
+</head>
+<body>
+  <main class="login">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+          <path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+        </svg>
+      </div>
+      <h1>Sonomètre</h1>
+      <p>Espace administration</p>
+    </div>
+    {% if error %}
+    <div class="error" style="margin-bottom:18px">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <div class="field">
+        <label for="username">Identifiant</label>
+        <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" placeholder="admin" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <button class="btn" type="submit">Se connecter</button>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Configuration — Sonomètre</title>
+<style>
+  :root{--bg:#f2f2f7;--card:#ffffff;--accent:#007aff;--accent-press:#0066d6;--green:#16a34a;--green-soft:#86efac;--orange:#f97316;--red:#ef4444;--text:#1c1c1e;--text-2:#8e8e93;--hair:rgba(60,60,67,.12);--field:#f2f2f7;--track:#e9e9ee;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+  .nav{position:sticky;top:0;z-index:20;display:flex;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair);padding-top:env(safe-area-inset-top)}
+  .nav-inner{max-width:653px;margin:0 auto;display:flex;width:100%}
+  .nav a{flex:1;display:flex;align-items:center;justify-content:center;height:52px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--accent);font-weight:600;border-bottom-color:var(--accent)}
+  main{max-width:653px;margin:0 auto;padding:16px 16px 36px;display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:768px){main{padding:24px 32px 40px}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .full{grid-column:1/-1}
+  .card-label{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);margin:0 0 14px}
+  .svc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--hair)}
+  .svc-left{display:flex;align-items:center;gap:9px}
+  .svc-dot{width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background .3s}
+  .svc-dot.active{background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.16)}
+  .svc-dot.inactive{background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.16)}
+  .svc-name{font-size:16px;font-weight:600}
+  .svc-state{font-size:14px;font-weight:600;transition:color .3s}
+  .svc-state.active{color:var(--green)}.svc-state.inactive{color:var(--red)}
+  .svc-actions{display:flex;gap:8px}
+  .svc-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border:1px solid var(--hair);border-radius:10px;background:#fff;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;color:var(--text)}
+  .svc-btn:hover{background:var(--field)}
+  .svc-btn:active{transform:scale(.97)}
+  .svc-btn.stop{color:var(--red);border-color:rgba(239,68,68,.35)}
+  .svc-btn.stop:hover{background:rgba(239,68,68,.05)}
+  .svc-btn svg{width:16px;height:16px;flex-shrink:0}
+  .btn-export{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid var(--hair);border-radius:10px;background:#fff;font-size:13px;color:var(--text-2);font-weight:500;font-family:var(--font);cursor:pointer;margin-top:8px}
+  .btn-export:hover{background:var(--field)}
+  .sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .sys-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:1px solid var(--hair);border-radius:10px;background:#fff;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text);transition:all .12s}
+  .sys-btn svg{width:20px;height:20px}
+  .sys-btn:hover{background:var(--field)}
+  .sys-btn:active{transform:scale(.97)}
+  .sys-btn.danger{color:var(--red);border-color:rgba(239,68,68,.35)}
+  .sys-btn.danger:hover{background:rgba(239,68,68,.05)}
+  .sys-confirm{display:none;margin-top:12px;padding:12px;border-radius:10px}
+  .sys-confirm.reboot{background:#eff6ff}
+  .sys-confirm.shutdown{background:rgba(239,68,68,.07)}
+  .sys-confirm p{font-size:14px;margin-bottom:10px}
+  .sys-confirm.reboot p{color:#2563eb}
+  .sys-confirm.shutdown p{color:var(--red)}
+  .sys-confirm-btns{display:flex;gap:8px}
+  .sys-confirm-btns button{flex:1;padding:8px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)}
+  .sys-cancel{background:var(--field);color:var(--text)}
+  .sys-ok-reboot{background:#2563eb;color:#fff}
+  .sys-ok-shutdown{background:var(--red);color:#fff}
+  .sys-msg{font-size:13px;text-align:center;margin-top:10px;padding:8px;border-radius:8px;display:none}
+  .del-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .del-btn{padding:10px 8px;border:1px solid var(--hair);border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;font-family:var(--font);text-align:center;color:var(--text)}
+  .del-btn.danger{color:var(--red);border-color:rgba(239,68,68,.35)}
+  .del-confirm{display:none;margin-top:12px;padding:12px;background:rgba(239,68,68,.07);border-radius:10px}
+  .del-confirm p{font-size:14px;color:var(--red);margin-bottom:10px}
+  .del-confirm-btns{display:flex;gap:8px}
+  .del-confirm-btns button{flex:1;padding:8px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)}
+  .del-cancel{background:var(--field);color:var(--text)}
+  .del-proceed{background:var(--red);color:#fff}
+  .del-success{font-size:13px;color:var(--green);text-align:center;margin-top:10px}
+  .seg{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:7px}
+  .seg>span{height:100%;transition:width .15s}
+  .seg-labels{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:18px}
+  .slider{margin-bottom:16px}
+  .slider:last-child{margin-bottom:0}
+  .slider .head{display:flex;justify-content:space-between;margin-bottom:8px}
+  .slider .name{font-size:15px;font-weight:500}
+  .slider .num{font-size:15px;font-weight:700}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:var(--track);outline:none;margin:0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .toggle-row .lbl{font-size:15px;font-weight:500}
+  .toggle{position:relative;display:inline-block;width:51px;height:31px;cursor:pointer;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle-bg{position:absolute;inset:0;background:#e5e5ea;border-radius:31px;transition:.3s}
+  .toggle-thumb{position:absolute;height:27px;width:27px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .son-types{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+  .son-type-lbl{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:1px solid var(--hair);border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;background:#fff}
+  .son-type-lbl span:first-child{font-size:22px}
+  .field label{display:block;font-size:14px;font-weight:500;margin-bottom:8px;color:var(--text-2)}
+  .field input[type=password]{width:100%;height:46px;border:none;background:var(--field);border-radius:var(--radius);padding:0 16px;font-size:16px;font-family:inherit;color:var(--text);outline:2px solid transparent;transition:outline-color .15s,background .15s}
+  .field input:focus{background:#fff;outline-color:var(--accent)}
+  .save{height:52px;width:100%;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
+  .save:hover{background:var(--accent-press)}
+  .save:active{transform:scale(.99)}
+  .success{background:#e7f6ec;color:var(--green);text-align:center;padding:10px;border-radius:10px;font-size:14px;font-weight:500}
+  .logout{display:block;text-align:center;color:var(--red);font-size:15px;font-weight:600;text-decoration:none;padding:10px}
+  .fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,122,255,.4);z-index:30;text-decoration:none;transition:transform .15s}
+  .fab:active{transform:scale(.93)}
+  .fab svg{width:24px;height:24px}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/">Dashboard</a>
+      <a href="/history">Historique</a>
+      <a href="/status">Statut</a>
+      <a href="/config" class="active">Config</a>
+    </div>
+  </nav>
+
+  <form method="POST" id="cfg-form">
+  <input type="hidden" name="db_min" id="h-min">
+  <input type="hidden" name="db_orange" id="h-orange">
+  <input type="hidden" name="db_rouge" id="h-rouge">
+  <input type="hidden" name="db_max" id="h-max">
+  <input type="hidden" name="blink_speed" id="h-blink">
+  <main>
+    {% if saved %}<div class="success full">Configuration sauvegardée — prise en compte immédiate</div>{% endif %}
+
+    <!-- Service -->
+    <section class="card">
+      <p class="card-label">Service sonomètre</p>
+      <div class="svc-header">
+        <div class="svc-left"><span class="svc-dot" id="svcDot"></span><span class="svc-name">Sonomètre</span></div>
+        <span class="svc-state" id="svcState">...</span>
+      </div>
+      <div class="svc-actions" id="svcActions"></div>
+      <button class="btn-export" type="button" onclick="exportCsv()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Exporter les données (CSV)
+      </button>
+      <button class="btn-export" type="button" onclick="downloadBackup()" style="margin-top:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Télécharger sauvegarde complète (.zip)
+      </button>
+    </section>
+
+    <!-- Système -->
+    <section class="card">
+      <p class="card-label">Système</p>
+      <div class="sys-grid">
+        <button class="sys-btn" type="button" onclick="askSystem('reboot')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>Redémarrer RPi
+        </button>
+        <button class="sys-btn danger" type="button" onclick="askSystem('shutdown')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M7.5 6.5a8 8 0 1 0 9 0"/></svg>Éteindre RPi
+        </button>
+      </div>
+      <div class="sys-confirm" id="sys-confirm">
+        <p id="sys-confirm-text"></p>
+        <div class="sys-confirm-btns"><button class="sys-cancel" type="button" onclick="cancelSystem()">Annuler</button><button id="sys-ok-btn" type="button" onclick="doSystem()">Confirmer</button></div>
+      </div>
+      <div class="sys-msg" id="sys-msg"></div>
+    </section>
+
+    <!-- Supprimer -->
+    <section class="card">
+      <p class="card-label">Supprimer des données</p>
+      <div class="del-grid">
+        <button class="del-btn" type="button" onclick="askDelete('today')">Aujourd'hui</button>
+        <button class="del-btn" type="button" onclick="askDelete('week')">7 derniers jours</button>
+        <button class="del-btn" type="button" onclick="askDelete('month')">30 derniers jours</button>
+        <button class="del-btn danger" type="button" onclick="askDelete('all')">Tout supprimer</button>
+      </div>
+      <div class="del-confirm" id="del-confirm"><p id="del-confirm-text"></p><div class="del-confirm-btns"><button class="del-cancel" type="button" onclick="cancelDelete()">Annuler</button><button class="del-proceed" type="button" onclick="doDelete()">Confirmer</button></div></div>
+      <div class="del-success" id="del-success" style="display:none"></div>
+    </section>
+
+    <!-- Seuils -->
+    <section class="card full">
+      <p class="card-label">Seuils sonores</p>
+      <div class="seg" id="seg"><span style="background:var(--track)"></span><span style="background:var(--green)"></span><span style="background:var(--orange)"></span><span style="background:var(--red)"></span></div>
+      <div class="seg-labels" id="segLabels"><span style="color:var(--text-2)"></span><span style="color:var(--text-2)"></span><span style="color:var(--orange)"></span><span style="color:var(--red)"></span><span style="color:var(--text-2)"></span></div>
+      <div style="display:grid;grid-template-columns:1fr;gap:0">
+        <div style="display:grid;grid-template-columns:1fr;gap:0">
+          <div class="slider"><div class="head"><span class="name">Silence (minimum)</span><span class="num" id="n_min" style="color:var(--text-2)"></span></div><input type="range" id="s_min" min="0" max="120" step="1"></div>
+          <div class="slider"><div class="head"><span class="name" style="color:var(--orange)">Seuil orange (fin du vert)</span><span class="num" id="n_orange" style="color:var(--orange)"></span></div><input type="range" id="s_orange" min="0" max="120" step="1"></div>
+          <div class="slider"><div class="head"><span class="name" style="color:var(--red)">Seuil rouge / clignotement</span><span class="num" id="n_rouge" style="color:var(--red)"></span></div><input type="range" id="s_rouge" min="0" max="120" step="1"></div>
+          <div class="slider"><div class="head"><span class="name">Plafond (maximum)</span><span class="num" id="n_max" style="color:var(--text-2)"></span></div><input type="range" id="s_max" min="0" max="120" step="1"></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-2);margin-top:10px">Le seuil "Silence" fixe uniquement le point de départ de la jauge - en dessous, aucune LED ne s'allume. Le vert occupe toute la zone entre Silence et le seuil Orange.</p>
+    </section>
+
+    <!-- Bandeau LED -->
+    <section class="card">
+      <p class="card-label">Bandeau LED</p>
+      <div class="slider">
+        <div class="head">
+          <span class="name">Nombre de LEDs</span>
+          <span class="num" id="n_led_count" style="color:var(--accent)"></span>
+        </div>
+        <input type="range" id="s_led_count" name="led_count" min="10" max="300" step="1" value="{{ config.get('led_count', 60) }}">
+      </div>
+      <button type="button" class="btn-export" onclick="testLedCount()" style="margin-top:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        Tester (allume toutes les LEDs en bleu, 3s)
+      </button>
+      <p id="ledTestMsg" style="font-size:12px;color:var(--text-2);margin-top:8px;display:none">Test en cours... le service redémarre automatiquement après.</p>
+    </section>
+
+    <!-- Réactivité de la jauge -->
+    <section class="card">
+      <p class="card-label">Réactivité de la jauge</p>
+      <div class="slider">
+        <div class="head">
+          <span class="name">Réactivité à la montée</span>
+          <span class="num" id="n_attack" style="color:var(--accent)"></span>
+        </div>
+        <input type="range" id="s_attack" name="attack" min="0.1" max="1" step="0.05" value="{{ config.get('attack', 0.6) }}">
+        <p style="font-size:11px;color:var(--text-2);margin-top:6px">Vers la gauche = montée douce et progressive. Vers la droite = montée quasi instantanée.</p>
+      </div>
+      <div class="slider" style="margin-bottom:0">
+        <div class="head">
+          <span class="name">Douceur de la descente</span>
+          <span class="num" id="n_release" style="color:var(--accent)"></span>
+        </div>
+        <input type="range" id="s_release" name="release" min="0.02" max="0.5" step="0.01" value="{{ config.get('release', 0.08) }}">
+        <p style="font-size:11px;color:var(--text-2);margin-top:6px">Vers la gauche = la jauge redescend lentement (effet glissant). Vers la droite = descente rapide.</p>
+      </div>
+    </section>
+
+    <!-- Alerte rouge - tout regroupé -->
+    <section class="card">
+      <p class="card-label">Alerte rouge</p>
+
+      <div class="slider">
+        <div class="head">
+          <span class="name">Durée avant déclenchement</span>
+          <span class="num" id="n_rouge_duree" style="color:var(--red)"></span>
+        </div>
+        <input type="range" id="s_rouge_duree" name="rouge_duree" min="0" max="15" step="1" value="{{ config.get('rouge_duree', 3) }}">
+        <p style="font-size:11px;color:var(--text-2);margin-top:6px">Le niveau doit rester au-dessus du seuil rouge pendant cette durée avant que l'alerte se déclenche.</p>
+      </div>
+
+      <div class="slider">
+        <div class="head">
+          <span class="name">Durée du déclenchement</span>
+          <span class="num" id="n_rouge_duree_min" style="color:var(--red)"></span>
+        </div>
+        <input type="range" id="s_rouge_duree_min" name="rouge_duree_min" min="1" max="30" step="1" value="{{ config.get('rouge_duree_min', 5) }}">
+        <p style="font-size:11px;color:var(--text-2);margin-top:6px">Une fois déclenchée, l'alerte dure au minimum cette durée - même si le niveau redescend avant. Si le niveau reste haut, elle continue au-delà.</p>
+      </div>
+
+      <div class="slider" style="margin-bottom:0">
+        <div class="head"><span class="name">Vitesse de clignotement</span><span class="num" id="n_blink" style="color:var(--accent)"></span></div>
+        <input type="range" id="s_blink" min="1" max="10" step="1">
+      </div>
+    </section>
+
+    <!-- Animation de démarrage -->
+    <section class="card">
+      <p class="card-label">Animation de démarrage</p>
+      <div class="son-types" style="grid-template-columns:1fr 1fr">
+        <label class="son-type-lbl" id="lbl-anim-vague">
+          <span>🌊</span>Vague
+          <input type="radio" name="startup_anim" value="vague" style="display:none" {% if config.get('startup_anim','vague')=='vague' %}checked{% endif %}>
+        </label>
+        <label class="son-type-lbl" id="lbl-anim-respiration">
+          <span>💚</span>Respiration
+          <input type="radio" name="startup_anim" value="respiration" style="display:none" {% if config.get('startup_anim','vague')=='respiration' %}checked{% endif %}>
+        </label>
+        <label class="son-type-lbl" id="lbl-anim-arcenciel">
+          <span>🌈</span>Arc-en-ciel
+          <input type="radio" name="startup_anim" value="arcenciel" style="display:none" {% if config.get('startup_anim','vague')=='arcenciel' %}checked{% endif %}>
+        </label>
+        <label class="son-type-lbl" id="lbl-anim-compteur">
+          <span>📊</span>Compteur
+          <input type="radio" name="startup_anim" value="compteur" style="display:none" {% if config.get('startup_anim','vague')=='compteur' %}checked{% endif %}>
+        </label>
+      </div>
+      <button type="button" class="btn-export" onclick="testAnim()" style="margin-top:10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Tester l'animation sélectionnée
+      </button>
+      <p id="animTestMsg" style="font-size:12px;color:var(--text-2);margin-top:8px;display:none">Animation en cours...</p>
+    </section>
+
+    <!-- Son -->
+    <section class="card">
+      <p class="card-label">Alerte sonore</p>
+      <div class="toggle-row">
+        <span class="lbl">Activer le son</span>
+        <label class="toggle"><input type="checkbox" name="son_actif" id="son_actif" {% if config.get('son_actif', True) %}checked{% endif %}><span class="toggle-bg" id="toggleBg"></span><span class="toggle-thumb" id="toggleThumb"></span></label>
+      </div>
+      <div id="son-options">
+        <div class="slider"><div class="head"><span class="name">Délai avant alerte</span><span class="num" id="n_son_delai" style="color:var(--accent)"></span></div><input type="range" id="s_son_delai" name="son_delai" min="1" max="30" step="1" value="{{ config.get('son_delai', 5) }}"></div>
+        <div class="son-types">
+          <label class="son-type-lbl" id="lbl-gong"><span>🔔</span>Gong<input type="radio" name="son_type" value="gong" style="display:none" {% if config.get('son_type','gong')=='gong' %}checked{% endif %}></label>
+          <label class="son-type-lbl" id="lbl-cloche"><span>🎵</span>Cloche<input type="radio" name="son_type" value="cloche" style="display:none" {% if config.get('son_type','gong')=='cloche' %}checked{% endif %}></label>
+          <label class="son-type-lbl" id="lbl-buzzer"><span>📯</span>Buzzer<input type="radio" name="son_type" value="buzzer" style="display:none" {% if config.get('son_type','gong')=='buzzer' %}checked{% endif %}></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Graphe + Sécurité -->
+    <section class="card">
+      <p class="card-label">Graphe dashboard</p>
+      <div class="slider" style="margin-bottom:0">
+        <div class="head"><span class="name">Durée par défaut</span><span class="num" id="n_graph_duree" style="color:var(--accent)"></span></div>
+        <input type="range" id="s_graph_duree" name="graph_duree" min="5" max="180" step="5" value="{{ config.get('graph_duree', 60) }}">
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="card-label">Sécurité</p>
+      <div class="field"><label>Nouveau mot de passe</label><input name="new_password" type="password" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password"></div>
+    </section>
+
+    <button class="save full" type="submit">Sauvegarder</button>
+    <a class="logout full" href="/logout">Se déconnecter</a>
+  </main>
+  </form>
+
+  <a href="/public" target="_blank" class="fab" aria-label="Écran réfectoire">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="m8 3 4 4 4-4"/></svg>
+  </a>
+
+<script>
+var INIT={min:{{ config.db_min }},orange:{{ config.db_orange }},rouge:{{ config.db_rouge }},max:{{ config.db_max }},blink:{{ config.blink_speed }}};
+var order=['min','orange','rouge','max'],EL={};
+order.forEach(function(k){EL[k]={s:document.getElementById('s_'+k),n:document.getElementById('n_'+k)};});
+EL.blink={s:document.getElementById('s_blink'),n:document.getElementById('n_blink')};
+order.forEach(function(k){EL[k].s.value=INIT[k];});
+EL.blink.s.value=Math.round(INIT.blink*10);
+function clampOrder(){var v={};order.forEach(function(k){v[k]=+EL[k].s.value;});for(var i=1;i<order.length;i++){if(v[order[i]]<=v[order[i-1]])v[order[i]]=v[order[i-1]]+1;}for(var j=order.length-2;j>=0;j--){if(v[order[j]]>=v[order[j+1]])v[order[j]]=v[order[j+1]]-1;}order.forEach(function(k){EL[k].s.value=v[k];});return v;}
+function refresh(){var v=clampOrder();order.forEach(function(k){EL[k].n.textContent=v[k]+' dB';});var lab=document.getElementById('segLabels').children;lab[0].textContent=v.min+' dB';lab[1].textContent='';lab[2].textContent=v.orange+' dB';lab[3].textContent=v.rouge+' dB';lab[4].textContent=v.max+' dB';var span=Math.max(1,v.max-v.min),seg=document.getElementById('seg').children;function w(a,b){return Math.max(0,(b-a))/span*100;}seg[0].style.width='0%';seg[1].style.width=w(v.min,v.orange)+'%';seg[2].style.width=w(v.orange,v.rouge)+'%';seg[3].style.width=w(v.rouge,v.max)+'%';document.getElementById('h-min').value=v.min;document.getElementById('h-orange').value=v.orange;document.getElementById('h-rouge').value=v.rouge;document.getElementById('h-max').value=v.max;}
+function onBlink(){var val=(+EL.blink.s.value/10).toFixed(1);EL.blink.n.textContent=val.replace('.',',')+' s';document.getElementById('h-blink').value=val;}
+order.forEach(function(k){EL[k].s.addEventListener('input',refresh);});
+EL.blink.s.addEventListener('input',onBlink);
+refresh();onBlink();
+var sGD=document.getElementById('s_graph_duree'),nGD=document.getElementById('n_graph_duree');
+function updateGD(){var v=+sGD.value;nGD.textContent=v>=60?(v/60).toFixed(0)+'h':v+' min';}
+sGD.addEventListener('input',updateGD);updateGD();
+var sonToggle=document.getElementById('son_actif'),toggleBg=document.getElementById('toggleBg'),toggleThumb=document.getElementById('toggleThumb');
+function updateToggle(){if(sonToggle.checked){toggleBg.style.background='var(--accent)';toggleThumb.style.transform='translateX(20px)';document.getElementById('son-options').style.opacity='1';document.getElementById('son-options').style.pointerEvents='auto';}else{toggleBg.style.background='#e5e5ea';toggleThumb.style.transform='translateX(0)';document.getElementById('son-options').style.opacity='.4';document.getElementById('son-options').style.pointerEvents='none';}}
+sonToggle.addEventListener('change',updateToggle);updateToggle();
+var sSonDelai=document.getElementById('s_son_delai'),nSonDelai=document.getElementById('n_son_delai');
+function updateSonDelai(){nSonDelai.textContent=sSonDelai.value+'s';}
+sSonDelai.addEventListener('input',updateSonDelai);updateSonDelai();
+['gong','cloche','buzzer'].forEach(function(type){var lbl=document.getElementById('lbl-'+type),inp=lbl.querySelector('input');function updateSonStyle(){['gong','cloche','buzzer'].forEach(function(t){var l=document.getElementById('lbl-'+t),i=l.querySelector('input');l.style.borderColor=i.checked?'var(--accent)':'var(--hair)';l.style.color=i.checked?'var(--accent)':'var(--text)';l.style.background=i.checked?'rgba(0,122,255,.06)':'#fff';});}inp.addEventListener('change',updateSonStyle);updateSonStyle();});
+function renderSvcButtons(status){var container=document.getElementById('svcActions'),dot=document.getElementById('svcDot'),state=document.getElementById('svcState');if(status==='active'){dot.className='svc-dot active';state.textContent='Actif';state.className='svc-state active';container.innerHTML='<button class="svc-btn" type="button" onclick="svcAction(\'restart\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>Relancer</button><button class="svc-btn stop" type="button" onclick="svcAction(\'stop\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Arrêter</button>';}else{dot.className='svc-dot inactive';state.textContent='Inactif';state.className='svc-state inactive';container.innerHTML='<button class="svc-btn" type="button" onclick="svcAction(\'start\')" style="flex:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 14 8-14 8V4z"/></svg>Démarrer</button>';}}
+async function checkService(){try{var d=await(await fetch('/api/status')).json();renderSvcButtons(d.sonometer);}catch(e){}}
+async function svcAction(action){try{var r=await fetch('/api/service/'+action,{method:'POST'}),d=await r.json();renderSvcButtons(d.status);}catch(e){}}
+function exportCsv(){window.location.href='/api/export/csv';}
+function downloadBackup(){window.location.href='/api/backup';}
+var SYS_LABELS={reboot:"Redémarrer le Raspberry Pi ? L'interface sera indisponible ~30 secondes.",shutdown:"Éteindre le Raspberry Pi ? Il faudra le rallumer physiquement."};
+var pendingSystem=null;
+function askSystem(action){pendingSystem=action;var c=document.getElementById('sys-confirm');c.className='sys-confirm '+action;c.style.display='block';document.getElementById('sys-confirm-text').textContent=SYS_LABELS[action];var btn=document.getElementById('sys-ok-btn');btn.className=action==='reboot'?'sys-ok-reboot':'sys-ok-shutdown';document.getElementById('sys-msg').style.display='none';}
+function cancelSystem(){pendingSystem=null;document.getElementById('sys-confirm').style.display='none';}
+async function doSystem(){if(!pendingSystem)return;document.getElementById('sys-confirm').style.display='none';var msg=document.getElementById('sys-msg');msg.style.display='block';if(pendingSystem==='reboot'){msg.style.background='#eff6ff';msg.style.color='#2563eb';msg.textContent='Redémarrage en cours… ~30s';}else{msg.style.background='rgba(239,68,68,.07)';msg.style.color='var(--red)';msg.textContent='Extinction en cours…';}try{await fetch('/api/system/'+pendingSystem,{method:'POST'});}catch(e){}pendingSystem=null;}
+var DEL_LABELS={today:"Supprimer les données d'aujourd'hui ?",week:"Supprimer les données des 7 derniers jours ?",month:"Supprimer les données des 30 derniers jours ?",all:"Supprimer TOUTES les données ? Action irréversible."};
+var pendingScope=null;
+function askDelete(scope){pendingScope=scope;document.getElementById('del-confirm-text').textContent=DEL_LABELS[scope];document.getElementById('del-confirm').style.display='block';document.getElementById('del-success').style.display='none';}
+function cancelDelete(){pendingScope=null;document.getElementById('del-confirm').style.display='none';}
+async function doDelete(){if(!pendingScope)return;try{var r=await fetch('/api/data/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope:pendingScope})});var d=await r.json();document.getElementById('del-confirm').style.display='none';var ok=document.getElementById('del-success');ok.style.display='block';ok.textContent='Suppression effectuée. Mesures restantes : '+d.remaining.toLocaleString('fr-FR');}catch(e){}pendingScope=null;}
+// Nombre de LEDs
+var sLedCount=document.getElementById('s_led_count'),nLedCount=document.getElementById('n_led_count');
+function updateLedCount(){ nLedCount.textContent=sLedCount.value+' LEDs'; }
+sLedCount.addEventListener('input',updateLedCount); updateLedCount();
+
+async function testLedCount(){
+  var count=parseInt(sLedCount.value);
+  var msg=document.getElementById('ledTestMsg');
+  msg.style.display='block';
+  msg.textContent='Test en cours sur '+count+' LEDs...';
+  try{
+    await fetch('/api/led/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({count:count})});
+    setTimeout(function(){ msg.style.display='none'; },4500);
+  }catch(e){ msg.textContent='Erreur lors du test'; }
+}
+
+// Attack / Release
+var sAttack=document.getElementById('s_attack'),nAttack=document.getElementById('n_attack');
+var sRelease=document.getElementById('s_release'),nRelease=document.getElementById('n_release');
+function updateAttack(){ nAttack.textContent=(+sAttack.value).toFixed(2); }
+function updateRelease(){ nRelease.textContent=(+sRelease.value).toFixed(2); }
+sAttack.addEventListener('input',updateAttack); updateAttack();
+sRelease.addEventListener('input',updateRelease); updateRelease();
+
+// Durée rouge
+var sRougeDuree=document.getElementById('s_rouge_duree'),nRougeDuree=document.getElementById('n_rouge_duree');
+function updateRougeDuree(){
+  var v=+sRougeDuree.value;
+  nRougeDuree.textContent=v===0?'Immédiat':v+'s';
+}
+sRougeDuree.addEventListener('input',updateRougeDuree); updateRougeDuree();
+
+// Durée minimale du déclenchement
+var sRougeDureeMin=document.getElementById('s_rouge_duree_min'),nRougeDureeMin=document.getElementById('n_rouge_duree_min');
+function updateRougeDureeMin(){ nRougeDureeMin.textContent=sRougeDureeMin.value+'s'; }
+sRougeDureeMin.addEventListener('input',updateRougeDureeMin); updateRougeDureeMin();
+
+// Animation démarrage - style sélection
+['vague','respiration','arcenciel','compteur'].forEach(function(type){
+  var lbl=document.getElementById('lbl-anim-'+type),inp=lbl.querySelector('input');
+  function updateAnimStyle(){
+    ['vague','respiration','arcenciel','compteur'].forEach(function(t){
+      var l=document.getElementById('lbl-anim-'+t),i=l.querySelector('input');
+      l.style.borderColor=i.checked?'var(--accent)':'var(--hair)';
+      l.style.color=i.checked?'var(--accent)':'var(--text)';
+      l.style.background=i.checked?'rgba(0,122,255,.06)':'#fff';
+    });
+  }
+  inp.addEventListener('change',updateAnimStyle);
+  updateAnimStyle();
+});
+
+async function testAnim(){
+  var selected=document.querySelector('input[name="startup_anim"]:checked').value;
+  var msg=document.getElementById('animTestMsg');
+  msg.style.display='block';
+  msg.textContent='Animation "'+selected+'" en cours...';
+  try{
+    await fetch('/api/led/test-anim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({anim:selected})});
+    setTimeout(function(){ msg.style.display='none'; },5500);
+  }catch(e){ msg.textContent='Erreur lors du test'; }
+}
+
+checkService();setInterval(checkService,5000);
+</script>
+</body>
+</html>

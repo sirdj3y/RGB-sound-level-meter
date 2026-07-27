@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Historique — Sonomètre</title>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+<style>
+  :root{--bg:#f2f2f7;--card:#ffffff;--accent:#007aff;--green:#16a34a;--orange:#f97316;--red:#ef4444;--text:#1c1c1e;--text-2:#8e8e93;--hair:rgba(60,60,67,.12);--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+  .nav{position:sticky;top:0;z-index:20;display:flex;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair);padding-top:env(safe-area-inset-top)}
+  .nav-inner{max-width:653px;margin:0 auto;display:flex;width:100%}
+  .nav a{flex:1;display:flex;align-items:center;justify-content:center;height:52px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--accent);font-weight:600;border-bottom-color:var(--accent)}
+  main{max-width:653px;margin:0 auto;padding:16px 16px 32px;display:flex;flex-direction:column;gap:16px}
+  @media(min-width:768px){main{padding:24px 32px 40px}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+  .card-title{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);margin-bottom:0}
+  .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+  .preset-btns{display:flex;gap:4px;flex-wrap:wrap}
+  .preset-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--hair);background:#fff;color:var(--text-2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .12s}
+  .preset-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+  .custom-dates{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--hair)}
+  .date-row{display:flex;gap:10px;margin-bottom:10px}
+  .date-row>div{flex:1}
+  .date-row label{font-size:12px;color:var(--text-2);display:block;margin-bottom:4px}
+  input[type=date]{width:100%;padding:7px 10px;background:#f2f2f7;border:none;border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font)}
+  .apply-btn{width:100%;padding:8px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+  #hist-chart{min-height:280px}
+  .fullscreen-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--hair);border-radius:6px;background:#fff;color:var(--text-2);cursor:pointer;transition:all .12s;flex-shrink:0}
+  .fullscreen-btn:hover{background:#f2f2f7;color:var(--text)}
+  .fullscreen-btn svg{width:14px;height:14px}
+  .chart-card-fs:fullscreen{background:var(--card);padding:24px;display:flex;flex-direction:column;justify-content:center}
+  .chart-card-fs:fullscreen #hist-chart{min-height:60vh}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--hair)}
+  .stat-box{background:#f2f2f7;border-radius:10px;padding:12px}
+  .stat-lbl{font-size:12px;color:var(--text-2);margin-bottom:4px}
+  .stat-val{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .empty{text-align:center;color:var(--text-2);font-size:14px;padding:40px 0}
+  .loading{text-align:center;color:var(--accent);font-size:14px;padding:20px 0}
+  /* Comparaison */
+  .stats-compare{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--hair);margin-top:14px}
+  .cmp-box{padding:14px 16px;border-right:1px solid var(--hair)}
+  .cmp-box:last-child{border-right:none}
+  .cmp-lbl{font-size:12px;color:var(--text-2);margin-bottom:4px}
+  .cmp-val{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .cmp-delta{font-size:12px;margin-top:2px;font-weight:500}
+  #mini-chart{min-height:100px;margin-top:8px}
+  .fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,122,255,.4);z-index:30;text-decoration:none;transition:transform .15s}
+  .fab:active{transform:scale(.93)}
+  .fab svg{width:24px;height:24px}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/">Dashboard</a>
+      <a href="/history" class="active">Historique</a>
+      <a href="/status">Statut</a>
+      <a href="/config">Config</a>
+    </div>
+  </nav>
+  <main>
+    <!-- Graphe principal avec filtres intégrés -->
+    <div class="card chart-card-fs" id="chartCard">
+      <div class="chart-head">
+        <p class="card-title">Évolution</p>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="preset-btns" id="presetBtns">
+            <button class="preset-btn active" data-preset="today">Aujourd'hui</button>
+            <button class="preset-btn" data-preset="yesterday">Hier</button>
+            <button class="preset-btn" data-preset="week">7 jours</button>
+            <button class="preset-btn" data-preset="month">30 jours</button>
+            <button class="preset-btn" data-preset="custom">Personnalisé</button>
+          </div>
+          <button class="fullscreen-btn" id="fsBtn" aria-label="Plein écran" title="Plein écran">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="custom-dates" id="customDates">
+        <div class="date-row">
+          <div><label>Du</label><input type="date" id="date-from"></div>
+          <div><label>Au</label><input type="date" id="date-to"></div>
+        </div>
+        <button class="apply-btn" onclick="loadData()">Appliquer</button>
+      </div>
+      <div id="hist-chart"></div>
+      <div class="stats-grid" id="statsGrid" style="display:none">
+        <div class="stat-box"><div class="stat-lbl">Moyenne</div><div class="stat-val" id="s-avg">--</div></div>
+        <div class="stat-box"><div class="stat-lbl">Pic maximum</div><div class="stat-val" id="s-max" style="color:var(--red)">--</div></div>
+        <div class="stat-box"><div class="stat-lbl">Minimum</div><div class="stat-val" id="s-min" style="color:var(--green)">--</div></div>
+        <div class="stat-box"><div class="stat-lbl">Temps zone rouge</div><div class="stat-val" id="s-red" style="color:var(--red)">--</div></div>
+      </div>
+    </div>
+
+    <div class="loading" id="loading" style="display:none">Chargement...</div>
+    <div class="empty" id="empty" style="display:none">Aucune donnée sur cette période.</div>
+
+    <!-- Comparaison aujourd'hui vs hier -->
+    <div class="card">
+      <p class="card-title" style="margin-bottom:0">Comparaison aujourd'hui vs hier</p>
+      <div class="stats-compare">
+        <div class="cmp-box"><div class="cmp-lbl">Aujourd'hui (moy.)</div><div class="cmp-val" id="avgToday">--</div><div class="cmp-delta" id="deltaToday"></div></div>
+        <div class="cmp-box"><div class="cmp-lbl">Hier (moy.)</div><div class="cmp-val" id="avgYesterday" style="color:var(--text-2)">--</div></div>
+      </div>
+      <div id="mini-chart"></div>
+    </div>
+  </main>
+
+  <a href="/public" target="_blank" class="fab" aria-label="Écran réfectoire">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="m8 3 4 4 4-4"/></svg>
+  </a>
+
+<script>
+var histChart=null, miniChart=null, currentPreset='today';
+
+function today0h(){var d=new Date();d.setHours(0,0,0,0);return Math.floor(d/1000);}
+function tsFromDate(str){return Math.floor(new Date(str+'T00:00:00').getTime()/1000);}
+
+function getRange(){
+  var now=Math.floor(Date.now()/1000),t0=today0h();
+  if(currentPreset==='today')    return{from:t0,to:now};
+  if(currentPreset==='yesterday')return{from:t0-86400,to:t0-1};
+  if(currentPreset==='week')     return{from:now-86400*7,to:now};
+  if(currentPreset==='month')    return{from:now-86400*30,to:now};
+  if(currentPreset==='custom'){
+    var f=document.getElementById('date-from').value,t=document.getElementById('date-to').value;
+    if(!f||!t)return null;
+    return{from:tsFromDate(f),to:tsFromDate(t)+86399};
+  }
+  return null;
+}
+
+var histOptions={
+  chart:{type:'area',height:280,toolbar:{show:false},zoom:{enabled:true,type:'x'},animations:{enabled:true,easing:'easeinout',speed:500},fontFamily:'inherit',locales:[{name:'fr',options:{months:['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],shortMonths:['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'],days:['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],shortDays:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']}}],defaultLocale:'fr'},
+  series:[{name:'Moyenne dB',data:[]},{name:'Pic max dB',data:[]}],
+  colors:['#16a34a','#ef4444'],
+  stroke:{curve:'smooth',width:[2,1.5],dashArray:[0,5]},
+  fill:{type:['gradient','solid'],opacity:[1,0],gradient:{shade:'light',type:'vertical',shadeIntensity:0.5,opacityFrom:0.7,opacityTo:0.1,stops:[0,90,100]}},
+  xaxis:{type:'datetime',labels:{style:{colors:'#b8b8be',fontSize:'11px'},datetimeUTC:false,format:'HH:mm'},axisBorder:{show:false},axisTicks:{show:false}},
+  yaxis:{min:0,labels:{style:{colors:'#b8b8be',fontSize:'11px'},formatter:function(v){return Math.round(v)+'dB';}},axisBorder:{show:false}},
+  grid:{borderColor:'rgba(60,60,67,.08)',strokeDashArray:0,xaxis:{lines:{show:false}}},
+  tooltip:{x:{format:'dd/MM HH:mm'},y:{formatter:function(v){return v+' dB';}},theme:'light',shared:true,intersect:false},
+  legend:{show:true,position:'top',horizontalAlign:'right',fontSize:'11px',labels:{colors:'#555'},markers:{width:10,height:10,radius:2}},
+  dataLabels:{enabled:false},
+  markers:{size:0},
+  noData:{text:'Aucune donnée',style:{color:'#8e8e93',fontSize:'14px'}}
+};
+
+var miniOptions={
+  chart:{type:'line',height:100,toolbar:{show:false},zoom:{enabled:false},animations:{enabled:false},sparkline:{enabled:false},fontFamily:'inherit'},
+  series:[{name:"Aujourd'hui",data:[]},{name:'Hier',data:[]}],
+  colors:['#16a34a','#c7c7cc'],
+  stroke:{curve:'smooth',width:[2,1.5],dashArray:[0,3]},
+  fill:{opacity:0},
+  xaxis:{type:'datetime',labels:{style:{colors:'#c7c7cc',fontSize:'10px'},datetimeUTC:false,format:'HH:mm'},axisBorder:{show:false},axisTicks:{show:false}},
+  yaxis:{labels:{style:{colors:'#c7c7cc',fontSize:'10px'},formatter:function(v){return Math.round(v);}},axisBorder:{show:false}},
+  grid:{borderColor:'rgba(60,60,67,.06)',strokeDashArray:0},
+  tooltip:{x:{format:'HH:mm'},y:{formatter:function(v){return v+' dB';}},theme:'light',shared:true},
+  legend:{show:true,position:'top',horizontalAlign:'right',fontSize:'11px',labels:{colors:'#8e8e93'},markers:{width:8,height:8,radius:2}},
+  dataLabels:{enabled:false},
+  markers:{size:0},
+  noData:{text:'Chargement…',style:{color:'#8e8e93',fontSize:'12px'}}
+};
+
+function initCharts(){
+  histChart=new ApexCharts(document.getElementById('hist-chart'),histOptions);
+  histChart.render();
+  miniChart=new ApexCharts(document.getElementById('mini-chart'),miniOptions);
+  miniChart.render();
+}
+
+async function loadData(){
+  var range=getRange();if(!range)return;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('statsGrid').style.display='none';
+  document.getElementById('empty').style.display='none';
+  try{
+    var data=await(await fetch('/api/history?from='+range.from+'&to='+range.to)).json();
+    document.getElementById('loading').style.display='none';
+    if(!data.points||data.points.length===0){
+      document.getElementById('empty').style.display='block';
+      histChart.updateSeries([{name:'Moyenne dB',data:[]},{name:'Pic max dB',data:[]}]);
+      return;
+    }
+    var avgS=data.points.map(function(p){return[p.bucket*1000,p.avg];});
+    var maxS=data.points.map(function(p){return[p.bucket*1000,p.max];});
+    histChart.updateSeries([{name:'Moyenne dB',data:avgS},{name:'Pic max dB',data:maxS}],true);
+    document.getElementById('statsGrid').style.display='grid';
+    document.getElementById('s-avg').textContent=data.stats.avg+' dB';
+    document.getElementById('s-max').textContent=data.stats.max+' dB';
+    document.getElementById('s-min').textContent=data.stats.min+' dB';
+    document.getElementById('s-red').textContent=data.stats.red_pct+'%';
+    /* Mise à jour du format axe X selon la durée */
+    var span=(range.to-range.from)/3600;
+    var fmt=span<=24?'HH:mm':span<=168?'dd/MM HH:mm':'dd/MM';
+    histChart.updateOptions({xaxis:{labels:{format:fmt}}},false,false);
+  }catch(e){document.getElementById('loading').style.display='none';}
+}
+
+async function loadComparaison(){
+  try{
+    var t=Math.floor(Date.now()/1000),t0=t-86400,y0=t0-86400;
+    var[dT,dY]=await Promise.all([
+      fetch('/api/history?from='+t0+'&to='+t).then(function(r){return r.json();}),
+      fetch('/api/history?from='+y0+'&to='+t0).then(function(r){return r.json();})
+    ]);
+    var avgT=dT.stats.avg,avgY=dY.stats.avg;
+    document.getElementById('avgToday').textContent=avgT!==null?avgT+' dB':'--';
+    document.getElementById('avgYesterday').textContent=avgY!==null?avgY+' dB':'--';
+    if(avgT!==null&&avgY!==null){
+      var delta=avgT-avgY,el=document.getElementById('deltaToday');
+      if(delta>0){el.textContent='▲ '+delta.toFixed(1)+' dB vs hier';el.style.color='var(--red)';}
+      else if(delta<0){el.textContent='▼ '+Math.abs(delta).toFixed(1)+' dB vs hier';el.style.color='var(--green)';}
+      else{el.textContent='= stable vs hier';el.style.color='var(--text-2)';}
+    }
+    var todaySeries=dT.points.map(function(p){return[p.bucket*1000,p.avg];});
+    var hierSeries=dY.points.map(function(p){return[p.bucket*1000+(86400*1000),p.avg];});
+    miniChart.updateSeries([{name:"Aujourd'hui",data:todaySeries},{name:'Hier',data:hierSeries}],true);
+  }catch(e){}
+}
+
+/* Boutons preset */
+document.getElementById('presetBtns').addEventListener('click',function(e){
+  var btn=e.target.closest('[data-preset]');if(!btn)return;
+  document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  currentPreset=btn.dataset.preset;
+  var isCustom=currentPreset==='custom';
+  document.getElementById('customDates').style.display=isCustom?'block':'none';
+  if(!isCustom)loadData();
+});
+
+/* Dates par défaut */
+var now=new Date();
+document.getElementById('date-to').value=now.toISOString().slice(0,10);
+document.getElementById('date-from').value=new Date(now-7*86400*1000).toISOString().slice(0,10);
+
+window.addEventListener('DOMContentLoaded',function(){
+  initCharts();
+  loadData();
+  loadComparaison();
+  setInterval(loadComparaison,60000);
+
+  var fsBtn=document.getElementById('fsBtn');
+  var chartCard=document.getElementById('chartCard');
+  fsBtn.addEventListener('click',function(){
+    if(!document.fullscreenElement){
+      chartCard.requestFullscreen().catch(function(){});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange',function(){
+    setTimeout(function(){ if(histChart) histChart.render(); },50);
+  });
+});
+</script>
+</body>
+</html>

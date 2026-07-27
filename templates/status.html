@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Statut — Sonomètre</title>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+<style>
+  :root{--bg:#f2f2f7;--card:#ffffff;--accent:#007aff;--green:#16a34a;--green-bg:#e7f6ec;--orange:#f97316;--red:#ef4444;--text:#1c1c1e;--text-2:#8e8e93;--hair:rgba(60,60,67,.12);--track:#e9e9ee;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+  .nav{position:sticky;top:0;z-index:20;display:flex;background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair);padding-top:env(safe-area-inset-top)}
+  .nav-inner{max-width:653px;margin:0 auto;display:flex;width:100%}
+  .nav a{flex:1;display:flex;align-items:center;justify-content:center;height:52px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--accent);font-weight:600;border-bottom-color:var(--accent)}
+  main{max-width:653px;margin:0 auto;padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px}
+  @media(min-width:768px){main{padding:24px 32px 40px}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-label{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);margin:0;padding:16px 20px 0}
+  .svc-hero{display:flex;align-items:center;gap:14px;padding:16px 20px 14px;border-bottom:1px solid var(--hair);transition:background .3s}
+  .svc-hero .badge{width:44px;height:44px;flex:none;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .svc-hero .badge svg{width:22px;height:22px}
+  .svc-hero h2{font-size:17px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .svc-hero p{font-size:13px;color:var(--text-2);margin:2px 0 0}
+  .row{display:flex;align-items:center;gap:12px;padding:15px 20px;border-top:1px solid var(--hair)}
+  .row .ic{width:34px;height:34px;flex:none;border-radius:9px;background:var(--bg);display:grid;place-items:center;color:var(--text-2)}
+  .row .ic svg{width:18px;height:18px}
+  .row .main{flex:1;min-width:0}
+  .row .name{font-size:16px;font-weight:500}
+  .row .sub{font-size:13px;color:var(--text-2);margin-top:1px}
+  .row .val{font-size:16px;font-weight:600;text-align:right;white-space:nowrap}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.green{background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.16)}
+  .dot.red{background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.16)}
+  .ok{color:var(--green)}.ko{color:var(--red)}
+  .big{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .storage{padding:16px 20px 20px}
+  .storage .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .storage .lbl{font-size:16px;font-weight:500}
+  .storage .num{font-size:14px;color:var(--text-2)}
+  .bar{height:10px;border-radius:5px;background:var(--track);overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:5px;background:var(--accent);transition:width .4s}
+  #spark-chart{padding:0 16px 12px}
+  .updated{text-align:center;font-size:13px;color:var(--text-2);padding:4px 0 6px}
+  .fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,122,255,.4);z-index:30;text-decoration:none;transition:transform .15s}
+  .fab:active{transform:scale(.93)}
+  .fab svg{width:24px;height:24px}
+  .temp-warn{color:var(--orange)}.temp-hot{color:var(--red)}
+
+  /* ── Uptime grid ── */
+  .uptime-card{padding:16px 20px 18px}
+  .uptime-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .uptime-pct{font-size:18px;font-weight:700}
+  .uptime-pct.good{color:var(--green)}
+  .uptime-pct.warn{color:var(--orange)}
+  .uptime-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-bottom:8px}
+  .uptime-block{aspect-ratio:1;border-radius:2px;background:var(--track)}
+  .uptime-block.up{background:var(--green)}
+  .uptime-block.down{background:var(--red)}
+  .uptime-block.unknown{background:var(--track)}
+  .uptime-block.future{background:transparent}
+  .uptime-legend{display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--text-2);flex-wrap:wrap}
+  .uptime-legend span{display:inline-flex;align-items:center;gap:5px}
+  .uptime-legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/">Dashboard</a>
+      <a href="/history">Historique</a>
+      <a href="/status" class="active">Statut</a>
+      <a href="/config">Config</a>
+    </div>
+  </nav>
+  <main>
+    <!-- Services + état global fusionnés -->
+    <section class="card">
+      <div class="svc-hero" id="sysHero">
+        <div class="badge" id="sysBadge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>
+        </div>
+        <div><h2 id="sysTitle">Vérification...</h2><p id="sysSub">Chargement</p></div>
+      </div>
+      <div class="row">
+        <span class="dot green" id="dotSono"></span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="main"><div class="name">Sonomètre</div><div class="sub">Service de mesure</div></div>
+        <div class="val" id="valSono">...</div>
+      </div>
+      <div class="row">
+        <span class="dot green"></span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></div>
+        <div class="main"><div class="name">Interface web</div><div class="sub" id="webSub">...</div></div>
+        <div class="val ok">en ligne</div>
+      </div>
+      <div class="row">
+        <span style="width:9px;height:9px;border-radius:50%;background:#8e8e93;flex:none"></span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="main"><div class="name">Uptime système</div></div>
+        <div class="val" id="valUptime" style="color:var(--text-2)">...</div>
+      </div>
+      <div class="row">
+        <span style="width:9px;height:9px;border-radius:50%;background:#8e8e93;flex:none"></span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg></div>
+        <div class="main"><div class="name">Température CPU</div></div>
+        <div class="val" id="cpuTemp">...</div>
+      </div>
+    </section>
+
+    <!-- Disponibilité - grille style aPulse -->
+    <section class="card">
+      <p class="card-label">Disponibilité - 7 derniers jours</p>
+      <div class="uptime-card">
+        <div class="uptime-header">
+          <span style="font-size:13px;color:var(--text-2)">Service sonomètre</span>
+          <span class="uptime-pct good" id="uptimePct">--%</span>
+        </div>
+        <div class="uptime-grid" id="uptimeGrid"></div>
+        <div class="uptime-legend">
+          <span><i style="background:var(--green)"></i>Actif</span>
+          <span><i style="background:var(--red)"></i>Inactif</span>
+          <span><i style="background:var(--track)"></i>Pas de donnée</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mesures -->
+    <section class="card">
+      <p class="card-label">Mesures</p>
+      <div class="row"><div class="main"><div class="name">Niveau actuel</div></div><div class="val big" id="lvl" style="color:var(--green)">--</div></div>
+      <div class="row"><div class="main"><div class="name">Dernière mesure</div></div><div class="val" id="ago" style="color:var(--text-2)">--</div></div>
+      <div class="row"><div class="main"><div class="name">Dernière alerte rouge</div></div><div class="val" id="lastRed" style="color:var(--text-2)">--</div></div>
+      <div class="row"><div class="main"><div class="name">Total en base</div></div><div class="val" id="total">--</div></div>
+      <!-- Sparkline 24h -->
+      <div id="spark-chart"></div>
+    </section>
+
+    <!-- Stockage -->
+    <section class="card">
+      <p class="card-label">Stockage carte SD</p>
+      <div class="storage">
+        <div class="top"><span class="lbl">Utilisé</span><span class="num" id="storageNum">--</span></div>
+        <div class="bar"><i id="storageBar" style="width:0%"></i></div>
+      </div>
+    </section>
+
+    <div class="updated" id="updated">Chargement...</div>
+  </main>
+
+  <a href="/public" target="_blank" class="fab" aria-label="Écran réfectoire">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="m8 3 4 4 4-4"/></svg>
+  </a>
+
+<script>
+var sparkChart=null;
+
+function fmtAge(sec){if(sec===null||sec===undefined)return'--';if(sec<60)return'il y a '+sec+'s';if(sec<3600)return'il y a '+Math.floor(sec/60)+'min';if(sec<86400)return'il y a '+Math.floor(sec/3600)+'h '+Math.floor((sec%3600)/60)+'min';return'il y a '+Math.floor(sec/86400)+'j';}
+function fmtTs(ts){if(!ts)return'--';var d=new Date(ts*1000),now=new Date(),yesterday=new Date(now-86400000);if(d.toDateString()===now.toDateString())return"aujourd'hui à "+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});if(d.toDateString()===yesterday.toDateString())return'hier à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+
+function initSparkChart(){
+  var opts={
+    chart:{type:'area',height:80,toolbar:{show:false},zoom:{enabled:false},sparkline:{enabled:false},animations:{enabled:false},fontFamily:'inherit'},
+    series:[{name:'dB',data:[]}],
+    colors:['#16a34a'],
+    stroke:{curve:'smooth',width:2},
+    fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:.15,opacityTo:0,stops:[0,100]}},
+    xaxis:{type:'datetime',labels:{style:{colors:'#c7c7cc',fontSize:'10px'},datetimeUTC:false,format:'HH:mm'},axisBorder:{show:false},axisTicks:{show:false}},
+    yaxis:{labels:{style:{colors:'#c7c7cc',fontSize:'10px'},formatter:function(v){return Math.round(v);}},axisBorder:{show:false}},
+    grid:{borderColor:'rgba(60,60,67,.06)'},
+    tooltip:{x:{format:'HH:mm'},y:{formatter:function(v){return v+' dB';}},theme:'light'},
+    dataLabels:{enabled:false},markers:{size:0},
+    noData:{text:'Chargement…',style:{color:'#8e8e93',fontSize:'12px'}}
+  };
+  sparkChart=new ApexCharts(document.getElementById('spark-chart'),opts);
+  sparkChart.render();
+}
+
+async function loadSpark(){
+  try{
+    var now=Math.floor(Date.now()/1000);
+    var d=await(await fetch('/api/history?from='+(now-86400)+'&to='+now)).json();
+    if(d.points&&d.points.length>0){
+      var series=d.points.map(function(p){return[p.bucket*1000,p.avg];});
+      sparkChart.updateSeries([{name:'dB',data:series}],true);
+    }
+  }catch(e){}
+}
+
+async function loadUptime(){
+  try{
+    var d=await(await fetch('/api/uptime')).json();
+    var grid=document.getElementById('uptimeGrid');
+    grid.innerHTML='';
+    d.blocks.forEach(function(b){
+      var div=document.createElement('div');
+      div.className='uptime-block '+b.status;
+      var date=new Date(b.t*1000);
+      var label=b.status==='up'?'actif':b.status==='down'?'inactif':b.status==='future'?'à venir':'pas de donnée';
+      div.title=date.toLocaleString('fr-FR')+' - '+label;
+      grid.appendChild(div);
+    });
+    var pctEl=document.getElementById('uptimePct');
+    pctEl.textContent=d.uptime_pct+'%';
+    pctEl.className='uptime-pct '+(d.uptime_pct>=99?'good':'warn');
+  }catch(e){}
+}
+
+async function load(){
+  try{
+    var d=await(await fetch('/api/status')).json(),sono=d.sonometer==='active';
+    var hero=document.getElementById('sysHero');
+    hero.style.background=sono?'var(--green-bg)':'#fdeee1';
+    document.getElementById('sysBadge').querySelector('svg').style.color=sono?'var(--green)':'var(--orange)';
+    document.getElementById('sysTitle').textContent=sono?'Système opérationnel':'Service inactif';
+    document.getElementById('sysSub').textContent=sono?'Tous les services fonctionnent':'Le sonomètre ne mesure pas';
+    document.getElementById('dotSono').className='dot '+(sono?'green':'red');
+    var vs=document.getElementById('valSono');vs.textContent=sono?'actif':'inactif';vs.className='val '+(sono?'ok':'ko');
+    document.getElementById('webSub').textContent='En ligne depuis '+d.webapp_uptime;
+    document.getElementById('valUptime').textContent=d.system_uptime||'--';
+    var lvlEl=document.getElementById('lvl');
+    if(d.last_measure_db!==null){lvlEl.textContent=d.last_measure_db.toFixed(1)+' dB';lvlEl.style.color=d.last_measure_db>=80?'var(--red)':d.last_measure_db>=70?'var(--orange)':'var(--green)';}
+    document.getElementById('ago').textContent=fmtAge(d.last_measure_age);
+    document.getElementById('lastRed').textContent=fmtTs(d.last_red_ts);
+    document.getElementById('total').textContent=d.total_measures.toLocaleString('fr-FR')+' mesures';
+    var tempEl=document.getElementById('cpuTemp');
+    if(d.cpu_temp!==null){tempEl.textContent=d.cpu_temp+' °C';tempEl.className='val '+(d.cpu_temp>75?'temp-hot':d.cpu_temp>60?'temp-warn':'ok');}
+    else tempEl.textContent='--';
+    var pct=d.disk_pct;
+    document.getElementById('storageNum').textContent=d.disk_used_gb+' Go / '+d.disk_total_gb+' Go · '+pct+' %';
+    var bar=document.getElementById('storageBar');
+    bar.style.width=pct+'%';
+    bar.style.background=pct>90?'var(--red)':pct>70?'var(--orange)':'var(--accent)';
+    document.getElementById('updated').textContent='Mis à jour à '+new Date().toLocaleTimeString('fr-FR');
+  }catch(e){}
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  initSparkChart();
+  load();loadSpark();loadUptime();
+  setInterval(load,5000);
+  setInterval(loadSpark,60000);
+  setInterval(loadUptime,300000);
+});
+</script>
+</body>
+</html>

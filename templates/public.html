@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1c1e">
+<title>Réfectoire — Niveau sonore</title>
+<style>
+  :root{
+    --green:#22c55e; --orange:#f97316; --red:#ef4444;
+    --green-amb:#e8f8ee; --orange-amb:#fdeede; --red-amb:#fdeaea;
+    --text:#1c1c1e;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:var(--font);background:var(--green-amb);color:var(--text);
+    -webkit-font-smoothing:antialiased;transition:background .6s ease;
+    display:flex;align-items:center;justify-content:center;
+    padding:4vmin;user-select:none;
+  }
+  body.green{background:var(--green-amb)}
+  body.orange{background:var(--orange-amb)}
+  body.red{background:var(--red-amb)}
+  .stage{display:flex;align-items:center;justify-content:center;gap:8vmin;width:100%;max-width:1400px}
+  .light{
+    flex:none;background:#1c1c22;border-radius:7vmin;padding:4vmin 3.4vmin;
+    display:flex;flex-direction:column;gap:3vmin;box-shadow:0 2vmin 5vmin rgba(0,0,0,.22);
+  }
+  .lamp{width:18vmin;height:18vmin;border-radius:50%;background:#34343c;transition:background .4s,box-shadow .4s,opacity .4s;opacity:.32}
+  .lamp.on{opacity:1}
+  .lamp.red.on{background:var(--red);box-shadow:0 0 9vmin rgba(239,68,68,.85)}
+  .lamp.orange.on{background:var(--orange);box-shadow:0 0 9vmin rgba(249,115,22,.85)}
+  .lamp.green.on{background:var(--green);box-shadow:0 0 9vmin rgba(34,197,94,.85)}
+  .info{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+  .kicker{font-size:clamp(16px,3.2vmin,40px);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text);opacity:.45}
+  .state{font-size:clamp(44px,13vmin,200px);font-weight:900;letter-spacing:-.02em;line-height:.95;margin:1vmin 0 2vmin;transition:color .4s}
+  .state.green{color:var(--green)}.state.orange{color:var(--orange)}.state.red{color:var(--red)}
+  .db{font-size:clamp(30px,7vmin,110px);font-weight:800;letter-spacing:-.02em;color:var(--text)}
+  .db .u{font-weight:700;opacity:.4;font-size:.55em;margin-left:.1em}
+  .countdown{font-size:clamp(14px,3vmin,48px);font-weight:700;color:var(--red);margin-top:1vmin;opacity:0;transition:opacity .3s}
+  .countdown.visible{opacity:1}
+  body.red .light{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  @media(max-aspect-ratio:9/10){
+    .stage{flex-direction:column;gap:5vmin}
+    .info{align-items:center;text-align:center}
+    .lamp{width:22vmin;height:22vmin}
+  }
+  .unlock-btn{
+    position:fixed;bottom:max(20px,env(safe-area-inset-bottom));right:20px;
+    padding:8px 16px;background:rgba(0,0,0,.12);border:none;border-radius:20px;
+    color:rgba(0,0,0,.45);font-size:13px;font-family:var(--font);cursor:pointer;
+    transition:all .2s
+  }
+  .unlock-btn.active{background:rgba(22,163,74,.15);color:rgba(22,163,74,.8)}
+</style>
+</head>
+<body class="green">
+  <div class="stage">
+    <div class="light">
+      <div class="lamp red"      id="lampRed"></div>
+      <div class="lamp orange"   id="lampOrange"></div>
+      <div class="lamp green on" id="lampGreen"></div>
+    </div>
+    <div class="info">
+      <div class="kicker">Niveau sonore</div>
+      <div class="state green" id="state">CALME</div>
+      <div class="db" id="db">--<span class="u">dB</span></div>
+      <div class="countdown" id="countdown"></div>
+    </div>
+  </div>
+  <button class="unlock-btn" id="unlockBtn" onclick="unlockAudio()">🔊 Activer le son</button>
+
+<script>
+var CFG = {
+  orange:    {{ config.db_orange }},
+  rouge:     {{ config.db_rouge }},
+  son_actif: {{ 'true' if config.get('son_actif', True) else 'false' }},
+  son_delai: {{ config.get('son_delai', 5) }},
+  son_type:  '{{ config.get("son_type", "gong") }}'
+};
+
+var LABEL = {green:'CALME', orange:'ÇA MONTE', red:'TROP FORT !'};
+function zoneOf(v){ return v>=CFG.rouge?'red':v>=CFG.orange?'orange':'green'; }
+
+/* Web Audio API */
+var audioCtx = null;
+var audioUnlocked = false;
+
+function unlockAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  audioUnlocked = true;
+  var btn = document.getElementById('unlockBtn');
+  btn.textContent = '🔊 Son activé';
+  btn.classList.add('active');
+}
+
+function playGong(){
+  if(!audioCtx||!audioUnlocked) return;
+  var t = audioCtx.currentTime;
+  [220,440,880].forEach(function(freq,i){
+    var osc=audioCtx.createOscillator();
+    var gain=audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value=freq; osc.type='sine';
+    gain.gain.setValueAtTime(i===0?0.5:0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+3.0-i*0.5);
+    osc.start(t); osc.stop(t+3.0);
+  });
+}
+
+function playCloche(){
+  if(!audioCtx||!audioUnlocked) return;
+  var t = audioCtx.currentTime;
+  [523,659,784,1047].forEach(function(freq,i){
+    var osc=audioCtx.createOscillator();
+    var gain=audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value=freq; osc.type='sine';
+    gain.gain.setValueAtTime(0.2, t+i*0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+2.0);
+    osc.start(t+i*0.08); osc.stop(t+2.0);
+  });
+}
+
+function playBuzzer(){
+  if(!audioCtx||!audioUnlocked) return;
+  var t = audioCtx.currentTime;
+  var osc=audioCtx.createOscillator();
+  var gain=audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.frequency.value=440; osc.type='square';
+  gain.gain.setValueAtTime(0.3,t);
+  gain.gain.setValueAtTime(0,t+0.15);
+  gain.gain.setValueAtTime(0.3,t+0.25);
+  gain.gain.setValueAtTime(0,t+0.4);
+  osc.start(t); osc.stop(t+0.5);
+}
+
+function playSound(){
+  if(CFG.son_type==='cloche') playCloche();
+  else if(CFG.son_type==='buzzer') playBuzzer();
+  else playGong();
+}
+
+var redSince = null;
+var soundPlayed = false;
+
+function updateCountdown(elapsed){
+  if(!CFG.son_actif){ document.getElementById('countdown').classList.remove('visible'); return; }
+  var remaining = CFG.son_delai - elapsed;
+  var el = document.getElementById('countdown');
+  if(remaining > 0){
+    el.textContent = '🔊 Son dans ' + Math.ceil(remaining) + 's';
+    el.classList.add('visible');
+  } else {
+    el.classList.remove('visible');
+  }
+}
+
+function paint(v){
+  var z = zoneOf(v);
+  document.body.className = z;
+  var st = document.getElementById('state');
+  st.textContent = LABEL[z]; st.className = 'state '+z;
+  document.getElementById('db').innerHTML = Math.round(v)+'<span class="u">dB</span>';
+  document.getElementById('lampRed').className    = 'lamp red'   +(z==='red'   ?' on':'');
+  document.getElementById('lampOrange').className = 'lamp orange'+(z==='orange'?' on':'');
+  document.getElementById('lampGreen').className  = 'lamp green' +(z==='green' ?' on':'');
+
+  var now = Date.now()/1000;
+  if(z==='red'){
+    if(!redSince) redSince = now;
+    var elapsed = now - redSince;
+    updateCountdown(elapsed);
+    if(CFG.son_actif && !soundPlayed && elapsed >= CFG.son_delai){
+      playSound();
+      soundPlayed = true;
+    }
+  } else {
+    redSince = null;
+    soundPlayed = false;
+    document.getElementById('countdown').classList.remove('visible');
+  }
+}
+
+async function fetchLevel(){
+  try{
+    var d = await (await fetch('/api/current')).json();
+    paint(d.db);
+  }catch(e){}
+}
+
+fetchLevel();
+setInterval(fetchLevel, 500);
+</script>
+</body>
+</html>
